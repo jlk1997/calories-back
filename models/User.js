@@ -42,6 +42,40 @@ const UserSchema = new mongoose.Schema({
   createdAt: {
     type: Date,
     default: Date.now
+  },
+  dietaryPreferences: {
+    type: [String],
+    default: []
+  },
+  healthGoals: {
+    type: [String],
+    default: []
+  },
+  allergens: {
+    type: [String],
+    default: []
+  },
+  nutritionSettings: {
+    proteinGoal: { type: Number, default: 50 },
+    carbsGoal: { type: Number, default: 250 },
+    fatGoal: { type: Number, default: 70 },
+    preferredDietType: { 
+      type: String, 
+      enum: ['balanced', 'low-carb', 'high-protein', 'vegetarian', 'vegan', 'keto'],
+      default: 'balanced'
+    }
+  },
+  assistantSettings: {
+    enabledFeatures: {
+      dailyTips: { type: Boolean, default: true },
+      mealSuggestions: { type: Boolean, default: true },
+      reminderNotifications: { type: Boolean, default: true }
+    },
+    preferredTone: {
+      type: String,
+      enum: ['friendly', 'professional', 'motivational', 'humorous'],
+      default: 'friendly'
+    }
   }
 });
 
