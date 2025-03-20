@@ -25,6 +25,45 @@ const UserSchema = new mongoose.Schema({
     minlength: 6,
     select: false
   },
+  avatar: {
+    type: String,
+    default: ''
+  },
+  gender: {
+    type: String,
+    enum: ['male', 'female', 'other'],
+    default: 'male'
+  },
+  age: {
+    type: Number,
+    default: 0
+  },
+  height: {
+    type: Number,
+    default: 0
+  },
+  weight: {
+    type: Number,
+    default: 0
+  },
+  bodyFat: {
+    type: Number,
+    default: 0
+  },
+  healthStatus: {
+    type: String,
+    enum: ['healthy', 'cold', 'fever', 'illness', 'other'],
+    default: 'healthy'
+  },
+  fitnessGoal: {
+    type: String,
+    enum: ['muscle_gain', 'fat_loss', 'maintain', 'general_health'],
+    default: 'general_health'
+  },
+  onboardingCompleted: {
+    type: Boolean,
+    default: false
+  },
   settings: {
     caloriesTarget: {
       type: Number,

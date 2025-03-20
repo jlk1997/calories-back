@@ -1,4 +1,7 @@
 const User = require('../models/User');
+const path = require('path');
+const fs = require('fs');
+const { promisify } = require('util');
 
 // @desc    注册用户
 // @route   POST /api/auth/register
@@ -95,6 +98,119 @@ exports.getMe = async (req, res, next) => {
   }
 };
 
+// @desc    更新用户信息
+// @route   PUT /api/auth/update
+// @access  私有
+exports.updateUser = async (req, res, next) => {
+  try {
+    // 可更新的字段
+    const allowedUpdates = [
+      'gender', 'age', 'height', 'weight', 'bodyFat', 
+      'healthStatus', 'fitnessGoal', 'onboardingCompleted'
+    ];
+    
+    // 过滤出允许更新的字段
+    const updates = {};
+    Object.keys(req.body).forEach(key => {
+      if (allowedUpdates.includes(key)) {
+        updates[key] = req.body[key];
+      }
+    });
+    
+    // 更新用户
+    const user = await User.findByIdAndUpdate(
+      req.user.id,
+      updates,
+      { new: true, runValidators: true }
+    );
+    
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: '用户不存在'
+      });
+    }
+    
+    res.status(200).json({
+      success: true,
+      data: user
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// @desc    上传用户头像
+// @route   POST /api/auth/avatar
+// @access  私有
+exports.uploadAvatar = async (req, res, next) => {
+  try {
+    // 检查是否有文件数据
+    if (!req.body.imageData) {
+      return res.status(400).json({
+        success: false,
+        message: '请提供图片数据'
+      });
+    }
+    
+    // 从base64数据中提取图片数据和类型
+    const imageDataParts = req.body.imageData.split(';base64,');
+    if (imageDataParts.length !== 2) {
+      return res.status(400).json({
+        success: false,
+        message: '无效的图片数据格式'
+      });
+    }
+    
+    const mimeType = imageDataParts[0].split(':')[1];
+    const extension = mimeType.split('/')[1];
+    const imageBuffer = Buffer.from(imageDataParts[1], 'base64');
+    
+    // 允许的图片类型
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'];
+    if (!allowedTypes.includes(mimeType)) {
+      return res.status(400).json({
+        success: false,
+        message: '只允许上传 JPG, PNG, GIF 格式的图片'
+      });
+    }
+    
+    // 确保上传目录存在
+    const uploadDir = path.join(__dirname, '../public/uploads/avatars');
+    try {
+      await promisify(fs.mkdir)(uploadDir, { recursive: true });
+    } catch (error) {
+      console.error('创建目录失败:', error);
+    }
+    
+    // 生成唯一文件名
+    const fileName = `${req.user.id}-${Date.now()}.${extension}`;
+    const filePath = path.join(uploadDir, fileName);
+    
+    // 写入文件
+    await promisify(fs.writeFile)(filePath, imageBuffer);
+    
+    // 更新用户头像URL
+    const avatarUrl = `/uploads/avatars/${fileName}`;
+    const user = await User.findByIdAndUpdate(
+      req.user.id,
+      { avatar: avatarUrl },
+      { new: true }
+    );
+    
+    res.status(200).json({
+      success: true,
+      data: {
+        avatar: avatarUrl,
+        user
+      }
+    });
+  } catch (err) {
+    console.error('上传头像错误:', err);
+    next(err);
+  }
+};
+
 // @desc    用户登出
 // @route   POST /api/auth/logout
 // @access  私有
@@ -117,7 +233,10 @@ const sendTokenResponse = (user, statusCode, res) => {
       id: user._id,
       username: user.username,
       email: user.email,
-      settings: user.settings
+      settings: user.settings,
+      avatar: user.avatar,
+      gender: user.gender,
+      onboardingCompleted: user.onboardingCompleted
     }
   });
 }; 
